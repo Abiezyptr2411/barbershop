@@ -32,7 +32,7 @@ class PemesananController extends Controller
                 try {
                     $statusMidtrans = \Midtrans\Transaction::status($pemesanan->kode_invoice);
                     $transaction = is_object($statusMidtrans) ? $statusMidtrans->transaction_status : null;
-
+                   
                     if ($transaction) {
                         if (in_array($transaction, ['capture', 'settlement'])) {
                             $pemesanan->status = 'sukses';
@@ -40,12 +40,11 @@ class PemesananController extends Controller
                             $pemesanan->status = 'batal';
                         }
 
-                    
                         $pemesanan->midtrans_status_code = $statusMidtrans->status_code ?? null;
                         $pemesanan->save();
                     }      
                 } catch (\Exception $e) {
-                    // Log error jika gagal cek status midtrans
+                    // Log error jika gagal 
                 }
             }
         }
@@ -62,15 +61,20 @@ class PemesananController extends Controller
     public function store(Request $request)
     {
         if (!session('user')) return redirect('/login');
-        $request->validate(['jadwal' => 'required|date']);
 
-        // Buat data pemesanan dulu (status: menunggu)
+        $request->validate([
+            'jadwal' => 'required|date',
+        ]);
+
+        // Buat data pemesanan awal
         $pemesanan = Pemesanan::create([
             'user_id' => session('user')->id,
             'jadwal' => $request->jadwal,
-            'harga' => 50000,
-            'status' => 'Sukses', 
-            'midtrans_status_code' => 200, 
+            'harga' => 20000,
+            'status' => 'pending', 
+            'midtrans_status_code' => null,
+            'payment_type' => null,
+            'bank_channel' => null, 
             'kode_invoice' => strtoupper(Str::random(6)),
         ]);
 
@@ -84,18 +88,67 @@ class PemesananController extends Controller
         $params = [
             'transaction_details' => [
                 'order_id' => $pemesanan->kode_invoice,
-                'gross_amount' => 50000,
+                'gross_amount' => $pemesanan->harga,
             ],
             'customer_details' => [
                 'first_name' => session('user')->nama,
                 'email' => session('user')->email,
             ],
+            'callbacks' => [
+                'finish' => url('/pemesanans/finish') 
+            ]
         ];
+        
+        $snapUrl = Snap::createTransaction($params)->redirect_url;
+        return redirect($snapUrl);
+    }
 
-        // Snap token
-        $snapToken = Snap::getSnapToken($params);
+    public function finish(Request $request)
+    {
+        $orderId = $request->order_id;
 
-        return view('pemesanans.bayar', compact('snapToken', 'pemesanan'));
+        // Setup Midtrans
+        Config::$serverKey = config('midtrans.server_key');
+        Config::$isProduction = config('midtrans.is_production');
+        Config::$isSanitized = true;
+        Config::$is3ds = true;
+
+        // Ambil data lengkap dari Midtrans
+        $transaction = Transaction::status($orderId);
+
+        $status = $transaction->transaction_status ?? null;
+        $statusCode = $transaction->status_code ?? null;
+        $paymentType = $transaction->payment_type ?? null;
+        $bank = null;
+
+        // Cek jika ada va_numbers
+        if (!empty($transaction->va_numbers)) {
+            $bank = $transaction->va_numbers[0]->bank ?? null;
+        } elseif ($paymentType == 'echannel') {
+            $bank = 'mandiri';
+        } elseif ($paymentType == 'qris') {
+            $bank = 'qris';
+        }
+
+        $pemesanan = Pemesanan::where('kode_invoice', $orderId)->first();
+        if ($pemesanan) {
+            $pemesanan->update([
+                'status' => $status,
+                'midtrans_status_code' => $statusCode,
+                'payment_type' => $paymentType,
+                'bank_channel' => $bank,
+            ]);
+        }
+
+        // dd([
+        //     'order_id' => $orderId,
+        //     'transaction_status' => $status,
+        //     'status_code' => $statusCode,
+        //     'payment_type' => $paymentType,
+        //     'bank_channel' => $bank,
+        // ]);
+
+        return redirect('/pemesanans')->with('success', 'Pembayaran berhasil!');
     }
 
     public function invoice($id)
@@ -114,7 +167,6 @@ class PemesananController extends Controller
         $statusCode = $notif->status_code;
         $orderId = $notif->order_id;
 
-        // Cari pemesanan berdasarkan kode_invoice
         $pemesanan = Pemesanan::where('kode_invoice', $orderId)->first();
 
         if (!$pemesanan) {

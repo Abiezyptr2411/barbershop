@@ -13,6 +13,8 @@ class Pemesanan extends Model
         'status',
         'kode_invoice',
         'midtrans_status_code',
+        'payment_type',
+        'bank_channel',
     ];
 }
 

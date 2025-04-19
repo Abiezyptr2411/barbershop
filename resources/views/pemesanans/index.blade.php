@@ -68,13 +68,13 @@
             <a href="?status=" class="nav-link {{ empty($status) ? 'active' : '' }}">Semua</a>
         </li>
         <li class="nav-item" role="presentation">
-            <a href="?status=sukses" class="nav-link {{ $status === 'sukses' ? 'active' : '' }}">Sukses</a>
+            <a href="?status=settlement" class="nav-link {{ $status === 'settlement' ? 'active' : '' }}">Order Berhasil</a>
         </li>
         <li class="nav-item" role="presentation">
-            <a href="?status=menunggu" class="nav-link {{ $status === 'menunggu' ? 'active' : '' }}">Menunggu</a>
+            <a href="?status=pending" class="nav-link {{ $status === 'pending' ? 'active' : '' }}">Order Menunggu</a>
         </li>
         <li class="nav-item" role="presentation">
-            <a href="?status=batal" class="nav-link {{ $status === 'batal' ? 'active' : '' }}">Batal</a>
+            <a href="?status=batal" class="nav-link {{ $status === 'cancel' ? 'active' : '' }}">Order Batal</a>
         </li>
     </ul>
 

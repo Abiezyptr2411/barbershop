@@ -24,4 +24,5 @@ Route::post('/pemesanans', [PemesananController::class, 'store']);
 Route::get('/invoice/{id}', [PemesananController::class, 'invoice']);
 
 Route::post('/midtrans/callback', [MidtransController::class, 'callback']);
-
+Route::get('/pemesanan/cek-status/{orderId}', [PemesananController::class, 'cekStatusMidtrans']);
+Route::get('/pemesanans/finish', [PemesananController::class, 'finish']);

@@ -41,7 +41,7 @@
 <script type="text/javascript">
     snap.pay("{{ $snapToken }}", {
         onSuccess: function(result) {
-            window.location.href = "/pemesanans/sukses";
+            window.location.href = "/pemesanans/";
         },
         onPending: function(result) {
             alert("Menunggu pembayaran!");
@@ -51,6 +51,7 @@
         }
     });
 </script>
+
 
 </body>
 </html>
