@@ -89,7 +89,6 @@ class AuthController extends Controller
         $startOfMonth = $now->copy()->startOfMonth()->toDateString();
         $endOfMonth = $now->copy()->endOfMonth()->toDateString();
 
-        // Hitung total transaksi dan volume bulan ini
         $totalTransactions = DB::table('pemesanans')
             ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
             ->count();
@@ -98,7 +97,6 @@ class AuthController extends Controller
             ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
             ->sum('harga');
 
-        // Data chart (per tanggal)
         $chartData = DB::table('pemesanans')
             ->select('bank_channel', DB::raw('SUM(harga) as total'))
             ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
