@@ -70,7 +70,6 @@
 
 <div class="card p-4">
     <div class="card-header">
-        <i class="bi bi-person-plus-fill login-icon"></i>
         <h3 class="mt-2">Daftar Akun</h3>
     </div>
     <div class="card-body">

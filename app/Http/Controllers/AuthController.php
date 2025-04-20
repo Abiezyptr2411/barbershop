@@ -18,29 +18,37 @@ class AuthController extends Controller
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6',
         ]);
-
-        User::create([
-            'name' => $request->name,
+    
+        $user = User::create([
+            'name' => strtoupper($request->name),
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
-
-        return back()->with('success', 'Pendaftaran berhasil!');
-    }
+    
+        // set user logged
+        session(['user' => $user]);
+    
+        return redirect('/dashboard')->with('success', 'Pendaftaran berhasil! Selamat datang, ' . $user->name);
+    }    
 
     public function loginForm() {
         return view('auth.login');
     }
 
     public function login(Request $request) {
-        $user = User::where('email', $request->email)->first();
+        $login = $request->email; 
+        $user = User::where(function ($query) use ($login) {
+            $query->where('email', $login)
+                  ->orWhere('name', strtoupper($login)); 
+        })->first();
+    
         if ($user && Hash::check($request->password, $user->password)) {
             session(['user' => $user]);
             return redirect('/dashboard')->with('success', 'Login berhasil! Selamat datang, ' . $user->name);
         }
     
-        return back()->with('error', 'Email atau password salah');
-    }    
+        return back()->with('error', 'Email/nama atau password salah');
+    }          
 
     public function logout() {
         session()->forget('user');

@@ -68,36 +68,54 @@
             <a href="?status=" class="nav-link {{ empty($status) ? 'active' : '' }}">Semua</a>
         </li>
         <li class="nav-item" role="presentation">
-            <a href="?status=settlement" class="nav-link {{ $status === 'settlement' ? 'active' : '' }}">Order Berhasil</a>
+            <a href="?status=settlement" class="nav-link {{ $status === 'settlement' ? 'active' : '' }}">Pesanan Sukses</a>
         </li>
         <li class="nav-item" role="presentation">
-            <a href="?status=pending" class="nav-link {{ $status === 'pending' ? 'active' : '' }}">Order Menunggu</a>
-        </li>
-        <li class="nav-item" role="presentation">
-            <a href="?status=batal" class="nav-link {{ $status === 'cancel' ? 'active' : '' }}">Order Batal</a>
+            <a href="?status=pending" class="nav-link {{ $status === 'pending' ? 'active' : '' }}">Menunggu Pembayaran</a>
         </li>
     </ul>
+
+    <form class="row g-2 mb-4" method="GET">
+        <input type="hidden" name="status" value="{{ request('status') }}">
+        <div class="col-md-4">
+            <input type="date" name="tanggal_awal" class="form-control" value="{{ request('tanggal_awal') }}">
+        </div>
+        <div class="col-md-4">
+            <input type="date" name="tanggal_akhir" class="form-control" value="{{ request('tanggal_akhir') }}">
+        </div>
+        <div class="col-md-4 d-flex">
+            <button type="submit" class="btn btn-warning w-100"><i class="bi bi-funnel-fill"></i> Filter</button>
+        </div>
+    </form>
 
     <div class="row g-3">
         @forelse($pemesanans as $p)
             <div class="col-md-6 col-lg-4">
                 <div class="card card-order p-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="status-tag status-{{ $p->status }}">{{ ucfirst($p->status) }}</span>
+                        @php
+                            $badge = match($p->status) {
+                                'pending' => 'status-menunggu',
+                                'settlement' => 'status-sukses',
+                                'cancel' => 'status-batal',
+                                default => 'bg-secondary text-white'
+                            };
+                        @endphp
+                        <span class="status-tag {{ $badge }}">{{ ucfirst($p->status) }}</span>
                         <span class="text-muted" style="font-size: 0.85rem;">#{{ $p->kode_invoice }}</span>
                     </div>
                     <h5 class="mb-1">Rp{{ number_format($p->harga) }}</h5>
                     <p class="mb-2 text-muted"><i class="bi bi-calendar-event"></i> {{ \Carbon\Carbon::parse($p->jadwal)->format('d M Y, H:i') }}</p>
                     <div class="d-flex justify-content-between align-items-center">
-                        <a href="/invoice/{{ $p->id }}" class="btn btn-sm btn-primary rounded-pill">
-                            <i class="bi bi-receipt-cutoff"></i> Lihat Invoice
+                        <a href="/invoice/{{ $p->id }}" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
+                            <i class="bi bi-receipt-cutoff"></i> Cetak Struk
                         </a>
                     </div>
                 </div>
             </div>
         @empty
             <div class="col-12">
-                <div class="alert alert-info">Belum ada pemesanan untuk status ini.</div>
+                <div class="alert alert-info">Belum ada pemesanan untuk filter ini.</div>
             </div>
         @endforelse
     </div>

@@ -17,39 +17,26 @@ class PemesananController extends Controller
         if (!session('user')) return redirect('/login');
 
         $status = $request->query('status');
+        $tanggal_awal = $request->query('tanggal_awal');
+        $tanggal_akhir = $request->query('tanggal_akhir');
 
         $query = Pemesanan::where('user_id', session('user')->id);
 
-        if ($status && in_array($status, ['sukses', 'batal', 'menunggu'])) {
+        if ($status && in_array($status, ['settlement', 'pending'])) {
             $query->where('status', $status);
         }
 
-        $pemesanans = $query->get();
-
-        // Update status dari Midtrans jika masih "menunggu"
-        foreach ($pemesanans as $pemesanan) {
-            if ($pemesanan->status === 'menunggu') {
-                try {
-                    $statusMidtrans = \Midtrans\Transaction::status($pemesanan->kode_invoice);
-                    $transaction = is_object($statusMidtrans) ? $statusMidtrans->transaction_status : null;
-                   
-                    if ($transaction) {
-                        if (in_array($transaction, ['capture', 'settlement'])) {
-                            $pemesanan->status = 'sukses';
-                        } elseif (in_array($transaction, ['cancel', 'deny', 'expire'])) {
-                            $pemesanan->status = 'batal';
-                        }
-
-                        $pemesanan->midtrans_status_code = $statusMidtrans->status_code ?? null;
-                        $pemesanan->save();
-                    }      
-                } catch (\Exception $e) {
-                    // Log error jika gagal 
-                }
-            }
+        if ($tanggal_awal) {
+            $query->whereDate('jadwal', '>=', $tanggal_awal);
         }
 
-        return view('pemesanans.index', compact('pemesanans', 'status'));
+        if ($tanggal_akhir) {
+            $query->whereDate('jadwal', '<=', $tanggal_akhir);
+        }
+
+        $pemesanans = $query->orderByDesc('jadwal')->get();
+
+        return view('pemesanans.index', compact('pemesanans', 'status', 'tanggal_awal', 'tanggal_akhir'));
     }
 
     public function create()
