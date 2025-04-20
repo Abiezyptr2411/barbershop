@@ -153,7 +153,7 @@
       <table class="table table-bordered table-hover align-middle">
         <thead class="table-light">
           <tr>
-            <th>TRANSACTION DATE</th>
+            <th>SCHEDULE DATE</th>
             <th>TRANSACTION ID</th>
             <th>PAYMENT TYPE</th>
             <th>CHANNEL</th>

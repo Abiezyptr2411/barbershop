@@ -119,10 +119,16 @@
                         <a href="/invoice/{{ $p->id }}" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
                             <i class="bi bi-receipt-cutoff"></i> Cetak Struk
                         </a>
+
+                        @if($p->status == 'pending')
+                            <a href="/pemesanans/bayar-ulang/{{ $p->id }}" class="btn btn-sm btn-outline-success rounded-pill mt-2">
+                                <i class="bi bi-cash-coin"></i> Bayar Sekarang
+                            </a>
+                        @endif
                     </div>
                 </div>
             </div>
-        @empty
+            @empty
             <div class="col-12">
                 <div class="alert alert-info">Belum ada pemesanan untuk filter ini.</div>
             </div>

@@ -31,13 +31,6 @@ Route::get('/pemesanans/finish', [PemesananController::class, 'finish']);
 Route::get('/admin/login', [AuthController::class, 'adminLoginForm']);
 Route::post('/admin/login', [AuthController::class, 'adminLogin']);
 
-// Route::get('/admin/dashboard', function () {
-//     if (!session('admin')) {
-//         return redirect('/admin/login')->with('error', 'Silakan login sebagai admin');
-//     }
-//     return view('admin.dashboard');
-// });
-
 Route::get('/admin/dashboard', [AuthController::class, 'adminDashboard']);
 Route::get('/admin/transactions', [AuthController::class, 'adminTransactions']);
 
@@ -45,4 +38,7 @@ Route::get('/admin/logout', function () {
     session()->forget('admin');
     return redirect('/admin/login')->with('success', 'Logout berhasil');
 });
+
+Route::get('/pemesanans/bayar-ulang/{id}', [PemesananController::class, 'bayarUlang']);
+
 

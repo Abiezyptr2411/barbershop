@@ -9,6 +9,8 @@ use Illuminate\Support\Str;
 use Midtrans\Snap;
 use Midtrans\Config;
 use Midtrans\Transaction;
+use App\Enums\TransactionStatus;
+use App\Enums\MidtransStatusCode;
 
 class PemesananController extends Controller
 {
@@ -22,7 +24,7 @@ class PemesananController extends Controller
 
         $query = Pemesanan::where('user_id', session('user')->id);
 
-        if ($status && in_array($status, ['settlement', 'pending'])) {
+        if ($status && in_array($status, [TransactionStatus::SETTLEMENT->value, TransactionStatus::PENDING->value])) {
             $query->where('status', $status);
         }
 
@@ -58,10 +60,10 @@ class PemesananController extends Controller
             'user_id' => session('user')->id,
             'jadwal' => $request->jadwal,
             'harga' => 20000,
-            'status' => 'pending', 
+            'status' => TransactionStatus::PENDING->value,
             'midtrans_status_code' => null,
             'payment_type' => null,
-            'bank_channel' => null, 
+            'bank_channel' => null,
             'kode_invoice' => strtoupper(Str::random(6)),
         ]);
 
@@ -82,10 +84,10 @@ class PemesananController extends Controller
                 'email' => session('user')->email,
             ],
             'callbacks' => [
-                'finish' => url('/pemesanans/finish') 
+                'finish' => url('/pemesanans/finish')
             ]
         ];
-        
+
         $snapUrl = Snap::createTransaction($params)->redirect_url;
         return redirect($snapUrl);
     }
@@ -100,40 +102,30 @@ class PemesananController extends Controller
         Config::$isSanitized = true;
         Config::$is3ds = true;
 
-        // Ambil data lengkap dari Midtrans
-        $transaction = Transaction::status($orderId);
+        $transaction = (object) Transaction::status($orderId);
+        $status = TransactionStatus::tryFrom($transaction->transaction_status ?? null) ?? TransactionStatus::PENDING;
+        $statusCode = MidtransStatusCode::tryFrom($transaction->status_code ?? null) ?? MidtransStatusCode::PENDING;
 
-        $status = $transaction->transaction_status ?? null;
-        $statusCode = $transaction->status_code ?? null;
         $paymentType = $transaction->payment_type ?? null;
         $bank = null;
 
-        // Cek jika ada va_numbers
         if (!empty($transaction->va_numbers)) {
             $bank = $transaction->va_numbers[0]->bank ?? null;
-        } elseif ($paymentType == 'echannel') {
+        } elseif ($paymentType === 'echannel') {
             $bank = 'mandiri';
-        } elseif ($paymentType == 'qris') {
+        } elseif ($paymentType === 'qris') {
             $bank = 'qris';
         }
 
         $pemesanan = Pemesanan::where('kode_invoice', $orderId)->first();
         if ($pemesanan) {
             $pemesanan->update([
-                'status' => $status,
-                'midtrans_status_code' => $statusCode,
+                'status' => $status->value,
+                'midtrans_status_code' => $statusCode->value,
                 'payment_type' => $paymentType,
                 'bank_channel' => $bank,
             ]);
         }
-
-        // dd([
-        //     'order_id' => $orderId,
-        //     'transaction_status' => $status,
-        //     'status_code' => $statusCode,
-        //     'payment_type' => $paymentType,
-        //     'bank_channel' => $bank,
-        // ]);
 
         return redirect('/pemesanans')->with('success', 'Pembayaran berhasil!');
     }
@@ -150,8 +142,8 @@ class PemesananController extends Controller
     {
         $notif = new Notification();
 
-        $transaction = $notif->transaction_status;
-        $statusCode = $notif->status_code;
+        $transaction = TransactionStatus::tryFrom($notif->transaction_status);
+        $statusCode = MidtransStatusCode::tryFrom($notif->status_code);
         $orderId = $notif->order_id;
 
         $pemesanan = Pemesanan::where('kode_invoice', $orderId)->first();
@@ -160,15 +152,50 @@ class PemesananController extends Controller
             return response()->json(['message' => 'Pemesanan tidak ditemukan'], 404);
         }
 
-        // Cek apakah transaksi sukses
-        if ($transaction == 'settlement' || $transaction == 'capture') {
+        if ($transaction === TransactionStatus::SETTLEMENT || $transaction === TransactionStatus::SUCCESS) {
             $pemesanan->update([
-                'status' => 'sukses',
-                'midtrans_status_code' => $statusCode,
+                'status' => TransactionStatus::SUCCESS->value,
+                'midtrans_status_code' => $statusCode?->value,
             ]);
         }
 
         return response()->json(['message' => 'Notifikasi diterima']);
     }
-}
 
+    public function bayarUlang($id)
+    {
+        if (!session('user')) return redirect('/login');
+
+        $pemesanan = Pemesanan::findOrFail($id);
+
+        if ($pemesanan->user_id != session('user')->id) {
+            abort(403);
+        }
+
+        $kodeBaru = strtoupper(Str::random(8));
+        $pemesanan->kode_invoice = $kodeBaru;
+        $pemesanan->save();
+
+        Config::$serverKey = config('midtrans.server_key');
+        Config::$isProduction = config('midtrans.is_production');
+        Config::$isSanitized = true;
+        Config::$is3ds = true;
+
+        $params = [
+            'transaction_details' => [
+                'order_id' => $pemesanan->kode_invoice,
+                'gross_amount' => $pemesanan->harga,
+            ],
+            'customer_details' => [
+                'first_name' => session('user')->nama,
+                'email' => session('user')->email,
+            ],
+            'callbacks' => [
+                'finish' => url('/pemesanans/finish')
+            ]
+        ];
+
+        $snapUrl = Snap::createTransaction($params)->redirect_url;
+        return redirect($snapUrl);
+    }
+}

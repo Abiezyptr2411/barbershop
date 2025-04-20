@@ -89,17 +89,23 @@ class AuthController extends Controller
         $startOfMonth = $now->copy()->startOfMonth()->toDateString();
         $endOfMonth = $now->copy()->endOfMonth()->toDateString();
 
+        // Total transaksi
         $totalTransactions = DB::table('pemesanans')
             ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            ->where('status', '!=', 'pending')
             ->count();
 
+        // Total volume transaksi 
         $totalVolume = DB::table('pemesanans')
             ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            ->where('status', '!=', 'pending')
             ->sum('harga');
 
+        // Data chart berdasarkan bank_channel 
         $chartData = DB::table('pemesanans')
             ->select('bank_channel', DB::raw('SUM(harga) as total'))
             ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            ->where('status', '!=', 'pending')
             ->groupBy('bank_channel')
             ->orderBy('total', 'desc')
             ->get();
@@ -132,14 +138,14 @@ class AuthController extends Controller
         }
 
         if ($request->filled('date_start')) {
-            $query->whereDate('created_at', '>=', $request->get('date_start'));
+            $query->whereDate('pemesanans.jadwal', '>=', $request->get('date_start'));
         }
 
         if ($request->filled('date_end')) {
-            $query->whereDate('created_at', '<=', $request->get('date_end'));
+            $query->whereDate('pemesanans.jadwal', '<=', $request->get('date_end'));
         }
 
-        $transactions = $query->orderBy('created_at', 'desc')->get();
+        $transactions = $query->orderBy('pemesanans.jadwal', 'asc')->get();
 
         return view('admin.transactions', compact('transactions'));
     } 
