@@ -60,31 +60,40 @@
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="fw-bold">Rincian Pesanan</h3>
-        <a href="/dashboard" class="btn btn-outline-primary"><i class="bi bi-arrow-left"></i> Kembali</a>
+        <a href="/dashboard" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
     </div>
 
     <ul class="nav nav-tabs mb-4" role="tablist">
         <li class="nav-item" role="presentation">
-            <a href="?status=" class="nav-link {{ empty($status) ? 'active' : '' }}">Semua</a>
+            <a href="?status=&tanggal_awal={{ request('tanggal_awal') }}&tanggal_akhir={{ request('tanggal_akhir') }}" class="nav-link {{ empty($status) ? 'active' : '' }}">Semua</a>
         </li>
         <li class="nav-item" role="presentation">
-            <a href="?status=settlement" class="nav-link {{ $status === 'settlement' ? 'active' : '' }}">Pesanan Sukses</a>
+            <a href="?status=settlement&tanggal_awal={{ request('tanggal_awal') }}&tanggal_akhir={{ request('tanggal_akhir') }}" class="nav-link {{ $status === 'settlement' ? 'active' : '' }}">Pesanan Sukses</a>
         </li>
         <li class="nav-item" role="presentation">
-            <a href="?status=pending" class="nav-link {{ $status === 'pending' ? 'active' : '' }}">Menunggu Pembayaran</a>
+            <a href="?status=pending&tanggal_awal={{ request('tanggal_awal') }}&tanggal_akhir={{ request('tanggal_akhir') }}" class="nav-link {{ $status === 'pending' ? 'active' : '' }}">Menunggu Pembayaran</a>
         </li>
     </ul>
 
-    <form class="row g-2 mb-4" method="GET">
+    <form id="filterForm" class="row g-2 mb-4 align-items-end" method="GET">
         <input type="hidden" name="status" value="{{ request('status') }}">
         <div class="col-md-4">
+            <label class="form-label">Tanggal Awal</label>
             <input type="date" name="tanggal_awal" class="form-control" value="{{ request('tanggal_awal') }}">
         </div>
         <div class="col-md-4">
+            <label class="form-label">Tanggal Akhir</label>
             <input type="date" name="tanggal_akhir" class="form-control" value="{{ request('tanggal_akhir') }}">
         </div>
-        <div class="col-md-4 d-flex">
-            <button type="submit" class="btn btn-warning w-100"><i class="bi bi-funnel-fill"></i> Filter</button>
+        <div class="col-md-2 d-grid">
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-funnel-fill"></i> Filter
+            </button>
+        </div>
+        <div class="col-md-2 d-grid">
+            <button type="button" class="btn btn-outline-secondary" onclick="clearFilter()">
+                <i class="bi bi-x-circle"></i> Clear Filter
+            </button>
         </div>
     </form>
 
@@ -139,6 +148,15 @@
     });
 </script>
 @endif
+
+<script>
+    function clearFilter() {
+        const form = document.getElementById('filterForm');
+        form.querySelector('input[name="tanggal_awal"]').value = '';
+        form.querySelector('input[name="tanggal_akhir"]').value = '';
+        form.submit(); 
+    }
+</script>
 
 </body>
 </html>
